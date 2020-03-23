@@ -1,60 +1,60 @@
 # ai_utilities
 
-A set of scripts useful in deep learning and AI purposes, originally for use with `fast.ai` lectures and libraries.
+A set of scripts useful with `fast.ai` lectures and libraries.
 
-## image_download.py
-Download images (typically limited to 1000) from a specified serach engine, currently Google or Bing.
-image_download.py is useful in several respects:
-- Because is utilizes selenium, it is not limited by the search engine api and generally allows for more downloaded images.
-- It can operate in `headless` mode, which means it can be used on a server without access to a gui browser.
-- The default browser is Firefox. The script can be modified to use other browsers such as Chrome.
+`image_download` is the primary function. It provides easy download of images from `google`, `bing` and/or `flickr` (though the later requires an `apikey`). It is intended for direct import of images within a python script or Jupyter Notebook. (This differs from previous versions intended for use as a CLI script.)
+
+This is a new version based upon `icrawler` vs. `selenium`. It is much cleaner to install, use and extend. (It is an extension of work from https://github.com/cwerner/fastclass)
+
+`make-train-valid` makes a train-valid directory and randomly copy files from labels_dir to sub-
+directories. It is largely obsolete due to the new capabilities provided directly within `fastai`
+
+## Installation
+- `Anaconda` should be installed
+- With `fastai` installed, the dependencies are: `icrawler` and `python-magic`
+- `conda install -c hellock icrawler`
+- `pip install python-magic` or if it fails, try  `pip install python-magic-bin`
+
+## Example Usage
+Download up to 500 images of each `class`, check each file to be a valid `jpeg` image, save to directory `dataset`, create imagenet-type directory structure and create `data = ImageDataBunch.from_folder(...)`
+```
+sys.path.append(your-parent-directory-of-ai_utilities)
+from ai_utilities import *
+
+pets = ['dog', 'cat', 'gold fish', 'tortise', 'snake' ]
+for p in pets:
+    image_download(p, 500)
+    
+path = Path.cwd()/'dataset'    
+make_train_valid(path)
+data = ImageDataBunch.from_folder(path, ds_tfms=get_transforms(), size=224, bs=64).normalize(imagenet_stats)
+```    
+
+## Functions
+### image_download.py
+Downloads up to a number of images (typically limited to 1000) from a specified search engine, including `google`, `bing` and `flickr`. The `search_text` can be different from its `label`. Downloads are checked to be valid images. By default, images are saved to the directory `dataset`
 
 ```
-usage: image_download.py [-h] [--gui] [--engine {google,bing}]
-                         searchtext num_images
-
-Select, search, download and save a specified number images using a choice of
-search engines
-
-positional arguments:
-  searchtext            Search Image
-  num_images            Number of Images
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --gui, -g             Use Browser in the GUI
-  --engine {google,bing}, -e {google,bing}
-                        Search Engine, default=google
+usage: image_download(search_text:Path, num_images, label:str=None, engine:str='google', image_dir='dataset', apikey=None)
+           where, 'engine'   = ['google'|'bing'|'all'|'flickr'],
+                  'all'    = 'google' and 'bing',
+                  'flickr' requires an apikey
+           where, 'label' can be different from 'search_text'
 ```
 
-Example: `image_download.py 'dog' 200 --engine 'bing' --gui` 
+### make_train_valid.py
+From a directory containing sub-directories, each with a different class of images, make an imagenet-type directory structure.
+It randomly copies files from `labels_dir` to sub-directories: `train`, `valid`, `test`. Creates an imagmenet-type directory usable by `ImageDataBunch.from_folder(dir,...)`
 
-Notes:
-1) Requires `Python >= 3`
-2) Install selenium: `conda install selenium`  or  `pip install selenium`
-3) Install other dependencies from conda
-3) Install an appropriate browser and browser driver (appropriate for your browser and operating system) in PATH.
-4) For example, if using Ubuntu and Firefox:
-- `tar xfvz geckodriver-v0.19.1-linux64.tar.gz` 
-- `mv geckodriver ~/bin/`, where `~/bin` is a dir in PATH
-
-## make_train_valid.py
 ```
-usage: make_train_valid.py [-h] [--train TRAIN] [--valid VALID] [--test TEST]
-                           labels_dir
-
-Make a train-valid directory and randomly copy files from labels_dir to sub-
-directories
-
-positional arguments:
-  labels_dir     Contains at least two directories of labels, each containing
-                 files of that label
-
-optional arguments:
-  -h, --help     show this help message and exit
-  --train TRAIN  files for training, default=.8
-  --valid VALID  files for validation, default=.2
-  --test TEST    files for training, default=.0
+usage: make_train_valid(labels_dir:Path, train:float=.8, valid:float=.2, test:float=0)                           
+     positional arguments:
+        labels_dir     Contains at least two directories of labels, each containing
+                       files of that label
+         optional arguments:
+                        train=.8  files for training, default=.8
+                        valid=.2  files for validation, default=.2
+                        test=  0  files for training, default=.0
 ```
 
 For example, given a directory:
@@ -62,10 +62,8 @@ For example, given a directory:
 catsdogs/
          ..cat/[*.jpg]
          ..dog/[*.jpg]
-``` 
-```
-make_train_valid.py catsdogs --train .75 --valid .25
-```
+```         
+
 Creates the following directory structure:
 ```
 catsdogs/
@@ -77,57 +75,4 @@ catsdogs/
          ..valid/
                  ..cat/[*.jpg]
                  ..dog/[*.jpg]
-```
-
-## filter_img.sh
-Use `file` to determine the type of picture then filter (keep) only pictures of a specified type.
-
-Images are filtered in place, i.e., non-JPEG files are deleted. (This can be modified within the script.)
-```
-Usage: filter_img.sh image_directory
-```
-
-Example:`filter_image.sh dogs/`
-
-## Sample workflow
-```
-image_download.py 'bmw' 500 --engine 'bing' --gui
-image_download.py 'cadillac' 500 --engine 'google'
-mv dataset cars
-filter_img.sh cars/bmw
-filter_img.sh cars/cadillac
-make_train_valid.py cars --train .75 --valid .25
-```
-
-## ai_utils.py
-
-```
-ai_utils.py
-contains:
-atttributes_of(obj, *exclude): -> prints obj attributes
-methods_of(obj,lr=False):      -> prints obj methods
-
-usage: import ai_utils
-
-> data = ImageClassifierData.from_paths(PATH, tfms=tfms_from_model(arch, sz))
-> attributes_of(data.trn_dl.dataset,'fnames')
-c: 2
-fnames: ...
-is_multi: False
-is_reg: False
-n: 23000
-path: data/dogscats/
-sz: 224
-y: [0 0 0 ... 1 1 1]
-
-> methods_of(data.trn_dl.dataset)
-denorm(arr):
-get(tfm, x, y):
-get_c():
-get_n():
-get_sz():
-get_x(i):
-get_y(i):
-resize_imgs(targ, new_path):
-transform(im, y=None):
-```
+``` 

@@ -6,6 +6,32 @@
 #
 ###
 
+__all__ = ['methods_of', 'attributes_of']
+import inspect, os, imghdr
+from pathlib import Path
+
+# print methods of an object
+def methods_of(obj,lr=False):
+    for attr in dir(obj):
+        if attr.startswith("_"): continue
+        try:
+            if callable(getattr(obj,str(attr),None)):
+                print(f"{attr}{str(inspect.signature(getattr(obj,str(attr), None)))}:")
+                if lr==True: print()
+        except: pass
+
+# print attributes of an object
+def attributes_of(obj, *exclude):
+    for attr in dir(obj):
+        if attr.startswith("_"): continue
+        try:
+            if not callable(getattr(obj,str(attr),None)):
+                if attr in exclude:
+                    print(f"{attr}: ...")
+                else:
+                    print(f"{attr}: {getattr(obj,attr)}")
+        except: pass
+
 """
 ai_utils.py
 contains:
@@ -36,28 +62,3 @@ get_y(i):
 resize_imgs(targ, new_path):
 transform(im, y=None):
 """
-
-
-import inspect
-
-# print methods of an object
-def methods_of(obj,lr=False):
-    for attr in dir(obj):
-        if attr.startswith("_"): continue
-        try:
-            if callable(getattr(obj,str(attr),None)):
-                print(f"{attr}{str(inspect.signature(getattr(obj,str(attr), None)))}:")
-                if lr==True: print()
-        except: pass
-
-# print attributes of an object
-def attributes_of(obj, *exclude):
-    for attr in dir(obj):
-        if attr.startswith("_"): continue
-        try:
-            if not callable(getattr(obj,str(attr),None)):
-                if attr in exclude:
-                    print(f"{attr}: ...")
-                else:
-                    print(f"{attr}: {getattr(obj,attr)}")
-        except: pass
